@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "beast": {
+      "source": "phtn/beast-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "5d9ff078d0d61fd4347ddc1d135e399567ad49b9252a0d127f32d973d6392e51"
+    }
+  }
+}
