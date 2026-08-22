@@ -1,167 +1,231 @@
-# Beast BTSX Syntax Cheatsheet
+# Beast BTSX syntax cheatsheet
 
-Compact authoring for TSRX. Indentation is structure. Octane owns runtime.
+Use this reference when authoring or reviewing `.btsx`. Beast turns indentation into native TSRX; Octane remains the runtime and final TypeScript/TSRX validator.
 
-## File shape
+## File shape and declarations
+
+Declarations must appear before the first template node. `module` and `setup` accept either one inline statement or an indented raw-source block. Imports and `props` occupy one logical line, which may span physical lines through `~`; a trailing semicolon is optional.
 
 ```btsx
-import Panel from "./Panel.btsx"
-import { useState } from "octane"
-
 module
+  "use strong";
   interface Props {
-    title: string
-    links: { id: string, label: string, url: string }[]
+    title: string;
+    items: { id: string; label: string }[];
   }
-  // any raw TypeScript at module scope
 
-props { title, links }: Props
+import { useMemo, useState } from "octane";
+
+component ItemCount
+  props { value }: { value: number }
+  p Count: #{value}
+
+props { title, items }: Props
 setup
-  const [count, setCount] = useState(0)
-  const doubled = useMemo(() => count * 2, [count])
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const count = useMemo(() => items.length);
 
-// template root(s)
-main.app
-  p.eyebrow BTSX → TSRX → Octane
+main.page
   h1 #{title}
-  button(onClick={() => setCount(count + 1)}) Count #{count}
+  ItemCount(value={count})
 ```
 
-Rules: `import` → `module` (multiline TS, keep as-is) → `props` (destructured, typed) → `setup` (hooks, TS) → template. `component` declares tagless locals.
+Use a module directive before imports when native TSRX requires it. `module` and `setup` source is preserved as TypeScript; Beast removes the block's common indentation but does not parse or rewrite it. A `props` declaration contains the component's complete function parameter, including its type. Explicit compiler or bundler `propsParam` options override source-level props.
 
-## Elements
+## Elements and selectors
 
-```
-tag               → div, h1, p, ul, li, header
-tag.class         → div.card
-tag#id            → div#app
-tag.class#id      → main.app#hero
-tag.class1.class2 → div.flex.gap
-Component         → Panel, AdminPanel (capitalized)
-```
+| BTSX | Meaning |
+| --- | --- |
+| `section` | native element |
+| `.card` | `div` with class `card` |
+| `section.hero` | element plus class shorthand |
+| `section#intro.hero` | element with ID and class shorthand |
+| `Card` | component reference |
+| `Theme.Provider` | dotted component API |
+| `Card.featured` | component plus class shorthand |
 
-Attributes: `a(href={url} target="_blank" rel="noreferrer")`, `div(class="x")`, `input(disabled)`, `div(data-testid="hero")`, `div({ ...props })` spread (precedence = authored order), `div#app`, `p.eyebrow`, `a.button(id={link.id})`.
+Capitalized selectors are component references. After a capitalized selector, PascalCase and `_`/`$` dotted segments remain part of the component API; a lowercase dotted segment is class shorthand.
 
-Text: `p Hello`, `h1 #{title}`, `p Count #{count} of #{total}`, `p Escaped \# not interpolation`, `code src/App.btsx.`
-
-## Control flow (emits native Octane)
+Indentation defines children:
 
 ```btsx
-if user.isAdmin
-  AdminPanel(userId={user.id})
-elseif user.guest
-  p Guest view
-else
-  p Welcome, #{user.name}
+main.page
+  section#intro.hero
+    h1 Beast
+    p Indentation becomes structure.
+```
 
-each item, i in items key item.id
-  li #{item.name}
+Indentation must use spaces. Two spaces is the project convention, but the parser's semantic requirement is that siblings align and children are indented more deeply than their parent. Tabs in indentation fail with `BEAST1003_TAB_INDENT`.
+
+## Attributes
+
+Attributes live in parentheses and can be separated by spaces or commas:
+
+```btsx
+Button(tone="primary" count={items.length} disabled) Continue
+a.link(href={url} target="_blank" rel="noreferrer") Open
+article.card({...cardProps} data-id={id}) #{title}
+```
+
+| Form | Behavior |
+| --- | --- |
+| `name="value"` or `name='value'` | quoted string |
+| `name={expression}` | TypeScript expression |
+| `disabled` | boolean attribute |
+| `{...props}` | ordered TypeScript spread |
+
+`class` normalizes to `className`. Selector classes combine with one explicit `class` or `className`. ID shorthand cannot be combined with an explicit `id`, and duplicate explicit class attributes are rejected. Spreads keep their authored order, so normal TSRX precedence applies.
+
+## Text, interpolation, entities, and comments
+
+Inline text follows a selector. Prefix a child line with `|` when it must be text rather than an element selector:
+
+```btsx
+p Hello, #{user.name}. You have #{messages.length} messages.
+div.notice
+  | This line is text, not an element selector.
+| Symbols stay safe: &lt; &gt; { } &amp;.
+```
+
+`#{...}` embeds a TypeScript expression. Literal text and quoted string attributes decode HTML entities before code generation; expressions remain untouched. Beast emits quote-safe attributes and safe literal text for Octane.
+
+Use `//` for comments:
+
+```btsx
+// This line is omitted from generated TSRX.
+p Visible
+```
+
+Do not use `#` as a comment prefix. It belongs to selector ID shorthand and `#{...}` interpolation.
+
+## Native control flow
+
+```btsx
+if status === "ready"
+  ReadyView
+elseif status === "loading"
+  LoadingView
+else
+  ErrorView
+
+each item, index in items key item.id
+  Row(item={item} position={index})
 empty
-  p No items
+  p No matches.
 
 switch variant
   case "editor"
-    Editor()
-  case "view"
-    Viewer()
+    Editor
+  case "viewer"
+    Viewer
   default
-    Empty()
+    Empty
 
 try
-  Content()
+  Profile(data={profileData})
 pending
-  p Loading...
-catch err
-  p Error #{err.message}
-# pending-only or catch-only also valid
+  p Loading profile…
+catch error, reset
+  .error
+    p Could not load profile: #{String(error)}
+    button(type="button" onClick={reset}) Try again
 ```
 
-Keys: prefer `key item.id`; single-root loop hoists key. `empty` aligned with `each`.
+- `if`/`elseif`/`else` branches must be adjacent and aligned.
+- `each item[, index] in iterable [key expression]` emits `@for`. Beast never invents an index key. A `key={...}` on the loop's only root can be hoisted instead of a header key.
+- `empty` must immediately follow its `each` at the same indentation.
+- `case` and `default` are direct children of `switch`; a switch has at most one default.
+- `try` requires `pending`, `catch`, or both. When both exist, `pending` comes first. Catch bindings can be bare (`catch error, reset`) or parenthesized.
 
-## Composition
+## Fragments, roots, and styles
 
 ```btsx
-# implicit fragment (multiple roots auto-wrapped)
-div One
-div Two
-
-# explicit fragment
 fragment
-  div A
-  div B
+  Header
+  main Content
 
-# dotted provider + context
-module
-  const Theme = createContext("light")
-Theme.Provider(value="dark")
-  Child()
-setup
-  const theme = use(Theme)
-
-# portal
-setup
-  const body = useMemo(() => document.body, [])
-createPortal(body)
-  Modal()
-
-# lazy + suspense + error
-setup
-  const Lazy = lazy(() => import("./Panel.tsrx"))
-Suspense(fallback=p Loading...)
-  Lazy()
-```
-
-## Styles
-
-```btsx
 style
-  :global(body) { margin: 0; }
-  .app { width: min(680px, 100vw - 3rem); }
-  .button:hover { opacity: 0.8; }
-  #beast { background: #fafafa; }
+  .card {
+    padding: 1rem;
+  }
+
+  :global(body) {
+    margin: 0;
+  }
 ```
 
-Scoped to component; `:global()` escapes.
+An authored `fragment` always emits a native TSRX fragment. Beast also inserts a fragment for multiple roots, no roots, a text-only root, or a style-only root. A `style` body is raw CSS with common indentation removed; Octane scopes it, while `:global(...)` escapes scoping.
 
-## Comments, line breaks, interpolation
+## Continuation lines (`~`)
+
+Prefix a more deeply indented physical line with `~` to append its payload to the preceding authored line. Beast joins the trimmed payload with one space before parsing or preserving the surrounding raw-source block:
 
 ```btsx
-# text line with interpolation
-p Start building in
-  span.arrow →
-  code src/App.btsx.
+setup const total = value
+  ~ + fallback;
 
-# escape
-p Price \#5
+Button(
+  ~ tone="primary"
+  ~ disabled
+  ~ onClick={() => save()}
+  ~ ) Save
 
-# blank lines and module comments preserved in TSRX output
-module
-  // comment kept
-  const x = 1
+if isReady
+  ~ && hasPermission
+  p Ready
+
+each item in items
+  ~ key item.id
+  li #{item.label}
+
+| Long literal text that
+  ~ continues on the next physical line
+
+style
+  .continued {
+    ~ color: red;
+    ~ }
 ```
 
-## Compiled TSRX shape (what Octane sees)
+Rules:
+
+- `~` must be the first non-space character on its physical line.
+- It must be indented more deeply than the authored line it extends.
+- Spaces or tabs immediately after `~` are removed, and the remaining payload is trimmed at the end.
+- `~` with no payload, or `~ // comment`, is a no-op continuation.
+- Multiple continuation lines chain onto the same predecessor.
+- An initial/orphan continuation fails with `BEAST1004_ORPHAN_CONTINUATION`.
+- Template headers, pipe text, continued imports/props, inline declarations, and lines inside raw `module`, `setup`, and `style` blocks can all use continuations.
+- Generated segments from a continuation retain that physical line and column in Beast's source map; combined declaration/node spans can cross the authored fragments.
+
+## Compiled TSRX shape
+
+```btsx
+props { title, items }: Props
+main.app
+  h1 #{title}
+  each item in items key item.id
+    a.button(href={item.url}) #{item.label}
+```
 
 ```tsrx
-import Panel from "./Panel.btsx"
-
-export default function Card({ title, links }: Props) @{
-  <div className="app">
-    <p className="eyebrow">BTSX → TSRX → Octane</p>
-    <h1>{title}</h1>
-    @for (const link of links; key link.id) {
-      <a className="button" id={link.id} href={link.url}>{link.label}</a>
-    }
-  </div>
+export default function App({ title, items }: Props) @{
+	<main className="app">
+		<h1>{title}</h1>
+		@for (const item of items; key item.id) {
+			<a className="button" href={item.url}>{item.label}</a>
+		}
+	</main>
 }
 ```
 
-Beast keeps output readable; Octane validates/lowers.
+Generated TSRX stays readable. Fix the BTSX source when either Beast or Octane reports an error.
 
 ## Common gotchas
 
-- Indentation: 2 spaces; `SourceSpan` reports line/column on error
-- Props must be destructured: `props { a, b }: Props` not `props a: Props`
-- Empty `fragment`/`style`/`spread`/`if` body → invalid syntax
-- Spread must be `{ ...x }`, not `{ x }`
-- Tagless locals need `component Name` with Capitalized name
+- declarations after template content → `BEAST1503_MISPLACED_DECLARATION`
+- tabs in indentation → `BEAST1003_TAB_INDENT`
+- empty `fragment`, `style`, control-flow arm, or local component template → source-located error
+- spread syntax must be `{...value}`, not `{value}`
+- `component Name` requires one PascalCase TypeScript identifier
+- an unclosed attribute list or interpolation cannot be repaired by indentation; close the delimiter or use `~` to continue the logical line

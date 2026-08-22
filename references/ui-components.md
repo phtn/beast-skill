@@ -210,14 +210,14 @@ to `overview`. `pending=false` intentionally renders a “Saved” status.
 
 ```btsx
 Header(
-  title="Adaptive Form"
-  subtitle="Validation streams"
-  description="Cancellation-safe async validation."
-  isVisible={showInfo}
-  toggleFn={toggleInfo}
-  pending={saving}
-  actions={[{ id: "reset", label: "Reset", onClick: reset, variant: "outline" }]}
-)
+  ~ title="Adaptive Form"
+  ~ subtitle="Validation streams"
+  ~ description="Cancellation-safe async validation."
+  ~ isVisible={showInfo}
+  ~ toggleFn={toggleInfo}
+  ~ pending={saving}
+  ~ actions={[{ id: "reset", label: "Reset", onClick: reset, variant: "outline" }]}
+  ~ )
 ```
 
 ### `Frame`, `Callout`, and `Brand`
@@ -403,15 +403,15 @@ last in their own flex row.
 List(aria-label="Customer reviews")
   each review in reviews key review.id
     ListItem(
-      title={review.author}
-      timestamp={review.date}
-      description={review.text}
-      imageSrc={review.avatar}
-      imageAlt={review.author}
-      badge={review.verified ? "✓" : undefined}
-      badgeTone="green"
-      unread={!review.seen}
-    )
+      ~ title={review.author}
+      ~ timestamp={review.date}
+      ~ description={review.text}
+      ~ imageSrc={review.avatar}
+      ~ imageAlt={review.author}
+      ~ badge={review.verified ? "✓" : undefined}
+      ~ badgeTone="green"
+      ~ unread={!review.seen}
+      ~ )
 ```
 
 ## Sidebar
@@ -439,13 +439,13 @@ Every `NavItem` contains `href`, `icon`, `label`, `description`, `title`, `value
 ```btsx
 each item in group.items key item.href
   SidebarItem(
-    href={item.href}
-    icon={item.icon}
-    label={item.label}
-    value={item.value}
-    path={path}
-    onNavigate={navigate(item.href)}
-  )
+    ~ href={item.href}
+    ~ icon={item.icon}
+    ~ label={item.label}
+    ~ value={item.value}
+    ~ path={path}
+    ~ onNavigate={navigate(item.href)}
+    ~ )
 ```
 
 ## Authoring rules

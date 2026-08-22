@@ -1,8 +1,8 @@
 {
   "name": "beast-skill",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Agent skill for building, debugging, and shipping Beast BTSX → TSRX → Octane apps",
+  "description": "Agent skill for authoring, debugging, navigating, and shipping Beast BTSX → TSRX → Octane apps",
   "license": "ISC",
   "engines": {
     "node": ">=22.22.2"
@@ -23,6 +23,8 @@
     "tsrx",
     "octane",
     "vite",
+    "language-server",
+    "lsp",
     "skill"
   ]
 }
